@@ -5,18 +5,18 @@ import numpy as np
 import cv2
 import os
 
-# ================================
+# ======================================
 # CONFIGURACIÓN DE LA PÁGINA
-# ================================
+# ======================================
 st.set_page_config(
     page_title="Detección de Objetos Urbanos",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ================================
+# ======================================
 # ESTILOS
-# ================================
+# ======================================
 st.markdown("""
 <style>
     .main {
@@ -28,17 +28,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ================================
+# ======================================
 # TÍTULO
-# ================================
-st.title("🚗 Detección de Objetos Urbanos")
+# ======================================
+st.title(" Detección de Objetos Urbanos")
 st.markdown("Carga una imagen o video para detectar carros, peatones, autobuses, camiones, motocicletas y semáforos.")
 
-# ================================
+# ======================================
 # SIDEBAR
-# ================================
+# ======================================
 with st.sidebar:
-    st.header("⚙️ Configuración del Modelo")
+    st.header("Configuración del Modelo")
 
     model_choice = st.selectbox(
         "Selecciona la versión de YOLO11",
@@ -62,18 +62,24 @@ with st.sidebar:
     - 🏍️ Motocicletas  
     """)
 
-# ================================
-# CARGA DEL MODELO (CACHE)
-# ================================
+
+# ======================================
+# CARGA DEL MODELO (SIN ARCHIVOS .pt LOCALES)
+# → Railway no soporta archivos grandes en build
+# → Entonces descargamos desde GitHub
+# ======================================
+MODEL_URL = "https://github.com/ultralytics/assets/releases/download/v0.0.0/"
+
 @st.cache_resource
 def load_model(model_name):
-    return YOLO(model_name)
+    full_url = MODEL_URL + model_name
+    return YOLO(full_url)
 
 model = load_model(model_choice)
 
-# ================================
-# CONFIGURACIÓN DE CLASES
-# ================================
+# ======================================
+# CONFIGURACIÓN CLASES
+# ======================================
 ALLOWED_CLASSES = [0, 2, 3, 5, 7, 9]
 
 class_mapping = {
@@ -85,41 +91,38 @@ class_mapping = {
     3: {"name": "Motocicleta", "color": (255, 0, 255)},
 }
 
-# ================================
+# ======================================
 # DETECTOR
-# ================================
+# ======================================
 def run_detection(image_array):
-    """Ejecuta YOLO con parámetros optimizados."""
     return model(
         image_array,
         conf=confidence_threshold,
         iou=0.6,
         imgsz=960,
         classes=ALLOWED_CLASSES,
-        agnostic_nms=False,
         verbose=False
     )
 
-# ================================
-# SUBIDA DE ARCHIVOS
-# ================================
+
+# ======================================
+# ARCHIVOS CARGADOS
+# ======================================
 uploaded_file = st.file_uploader(
     "Carga una imagen o video",
     type=["jpg", "jpeg", "png", "bmp", "mp4", "avi", "mov", "mkv"]
 )
 
-# ================================
-# PROCESAMIENTO
-# ================================
 if uploaded_file is None:
-    st.info("👆 Carga una imagen o video para comenzar.")
+    st.info(" Ingresa una imagen o video para comenzar.")
     st.stop()
 
 file_type = uploaded_file.type
 
-# ----------------------------------------
-# 🖼️ IMÁGENES
-# ----------------------------------------
+
+# ======================================
+# IMAGEN
+# ======================================
 if "image" in file_type:
     image = Image.open(uploaded_file).convert("RGB")
     image_array = np.array(image)
@@ -157,8 +160,7 @@ if "image" in file_type:
         st.subheader("Detecciones")
         st.image(image_with_boxes, use_container_width=True)
 
-    # Resumen
-    st.markdown("### 📊 Resumen")
+    st.markdown("### Resumen")
     if detection_counts:
         cols = st.columns(len(detection_counts))
         for (name, count), col in zip(detection_counts.items(), cols):
@@ -166,9 +168,10 @@ if "image" in file_type:
     else:
         st.warning("No se detectaron objetos.")
 
-# ----------------------------------------
-# 🎥 VIDEO
-# ----------------------------------------
+
+# ======================================
+# VIDEO
+# ======================================
 else:
     st.subheader("Procesamiento de Video")
     temp_video = "temp_video.mp4"
